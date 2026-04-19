@@ -1,799 +1,137 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Electrochemical Energy Simulator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<h2 class="sr-only">Electrochemical energy storage simulator with three interactive modules: battery, fuel cell, and cell builder.</h2>
 <style>
-/* ============================================================
-   RESET & ROOT
-   ============================================================ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --font-sans: 'IBM Plex Sans', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
-
-  /* Color palette */
-  --bg-base:        #0d0f12;
-  --bg-surface:     #13161b;
-  --bg-raised:      #1a1e25;
-  --bg-overlay:     #20252e;
-
-  --border-subtle:  rgba(255,255,255,0.06);
-  --border-default: rgba(255,255,255,0.10);
-  --border-strong:  rgba(255,255,255,0.18);
-
-  --text-primary:   #e8edf3;
-  --text-secondary: #8a95a3;
-  --text-muted:     #4e5762;
-
-  /* Accent colors */
-  --teal:        #1db87e;
-  --teal-dim:    rgba(29,184,126,0.12);
-  --teal-mid:    rgba(29,184,126,0.25);
-  --teal-glow:   rgba(29,184,126,0.08);
-
-  --amber:       #e8a230;
-  --amber-dim:   rgba(232,162,48,0.12);
-  --amber-mid:   rgba(232,162,48,0.25);
-
-  --red:         #e05c3a;
-  --red-dim:     rgba(224,92,58,0.12);
-  --red-mid:     rgba(224,92,58,0.25);
-
-  --blue:        #4a9eff;
-  --blue-dim:    rgba(74,158,255,0.12);
-
-  /* Radii */
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 14px;
-  --r-xl: 18px;
-
-  /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3);
-  --shadow-glow: 0 0 20px rgba(29,184,126,0.15);
-}
-
-html { font-size: 14px; }
-
-body {
-  font-family: var(--font-sans);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  min-height: 100vh;
-  line-height: 1.5;
-}
-
-/* ============================================================
-   LAYOUT SHELL
-   ============================================================ */
-.app-shell {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 24px 20px 48px;
-}
-
-/* ============================================================
-   PAGE HEADER
-   ============================================================ */
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 28px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.header-left { flex: 1; min-width: 0; }
-.header-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--teal);
-  margin-bottom: 6px;
-}
-.header-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-primary);
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-.header-sub {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-.header-badge {
-  flex-shrink: 0;
-  background: var(--teal-dim);
-  border: 1px solid rgba(29,184,126,0.2);
-  color: var(--teal);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 20px;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-}
-
-/* ============================================================
-   SYSTEM STATUS BAR
-   ============================================================ */
-.sys-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface);
-  margin-bottom: 20px;
-  transition: background 0.4s, border-color 0.4s;
-}
-.sys-bar.mode-batt { border-color: rgba(29,184,126,0.3); background: rgba(29,184,126,0.06); }
-.sys-bar.mode-fc   { border-color: rgba(232,162,48,0.3); background: rgba(232,162,48,0.06); }
-.sys-bar.mode-warn { border-color: rgba(224,92,58,0.4);  background: rgba(224,92,58,0.08); }
-
-.sys-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  margin-bottom: 3px;
-}
-.sys-mode-txt {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.sys-bar.mode-batt .sys-mode-txt { color: var(--teal); }
-.sys-bar.mode-fc   .sys-mode-txt { color: var(--amber); }
-.sys-bar.mode-warn .sys-mode-txt { color: var(--red); }
-
-.sys-detail {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-/* ============================================================
-   ALERT STACK
-   ============================================================ */
-.alert-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-.alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 10px 14px;
-  border-radius: var(--r-md);
-  border: 1px solid transparent;
-  animation: alertIn 0.25s ease;
-  line-height: 1.4;
-}
-@keyframes alertIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.alert-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-top: 4px;
-}
-.alert-warn   { background: var(--amber-dim); border-color: rgba(232,162,48,0.25); color: #f0c060; }
-.alert-danger { background: var(--red-dim);   border-color: rgba(224,92,58,0.25);  color: #f08068; }
-.alert-info   { background: var(--teal-dim);  border-color: rgba(29,184,126,0.25); color: #50d0a0; }
-.dot-warn   { background: var(--amber); }
-.dot-danger { background: var(--red); }
-.dot-info   { background: var(--teal); }
-
-/* ============================================================
-   TAB NAVIGATION
-   ============================================================ */
-.sim-nav {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 24px;
-  background: var(--bg-surface);
-  padding: 5px;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--border-subtle);
-  flex-wrap: wrap;
-}
-.sim-btn {
-  flex: 1;
-  min-width: 120px;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  padding: 9px 18px;
-  border-radius: var(--r-md);
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.18s;
-  white-space: nowrap;
-  text-align: center;
-}
-.sim-btn:hover:not(.active) {
-  background: var(--bg-raised);
-  color: var(--text-primary);
-}
-.sim-btn.active {
-  background: var(--teal);
-  color: #0d0f12;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(29,184,126,0.3);
-}
-
-/* ============================================================
-   MODULE CARD
-   ============================================================ */
-.module {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--r-xl);
-  padding: 24px;
-  margin-bottom: 16px;
-  box-shadow: var(--shadow-card);
-}
-.mod-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-.mod-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-/* ============================================================
-   TAGS / BADGES
-   ============================================================ */
-.tag {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 10px;
-  border-radius: 20px;
-  white-space: nowrap;
-}
-.tag-teal  { background: var(--teal-dim);  color: var(--teal);  border: 1px solid rgba(29,184,126,0.2); }
-.tag-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(232,162,48,0.2); }
-.tag-blue  { background: var(--blue-dim);  color: var(--blue);  border: 1px solid rgba(74,158,255,0.2); }
-.tag-red   { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(224,92,58,0.2); }
-
-/* ============================================================
-   CONTROL ROWS
-   ============================================================ */
-.control-section {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 24px;
-}
-.row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 32px;
-}
-.lbl {
-  font-size: 13px;
-  color: var(--text-secondary);
-  min-width: 148px;
-  flex-shrink: 0;
-}
-.val {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
-  min-width: 70px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-/* Range inputs */
-input[type="range"] {
-  flex: 1;
-  height: 4px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: var(--bg-overlay);
-  border-radius: 2px;
-  outline: none;
-  cursor: pointer;
-  min-width: 0;
-}
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--teal);
-  cursor: pointer;
-  box-shadow: 0 0 0 3px rgba(29,184,126,0.2);
-  transition: box-shadow 0.15s;
-}
-input[type="range"]:hover::-webkit-slider-thumb,
-input[type="range"]:focus::-webkit-slider-thumb {
-  box-shadow: 0 0 0 5px rgba(29,184,126,0.25);
-}
-input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border: none;
-  border-radius: 50%;
-  background: var(--teal);
-  cursor: pointer;
-}
-
-/* Select inputs */
-select {
-  flex: 1;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  padding: 8px 12px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--border-default);
-  background: var(--bg-raised);
-  color: var(--text-primary);
-  outline: none;
-  cursor: pointer;
-  min-width: 0;
-}
-select:focus { border-color: rgba(29,184,126,0.4); }
-
-/* ============================================================
-   METRICS GRID
-   ============================================================ */
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
-  margin-bottom: 24px;
-}
-.metric {
-  background: var(--bg-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-md);
-  padding: 12px 14px;
-  transition: border-color 0.3s, background 0.3s;
-}
-.metric.warn   { background: var(--amber-dim); border-color: rgba(232,162,48,0.3); }
-.metric.danger { background: var(--red-dim);   border-color: rgba(224,92,58,0.3); }
-.metric-label {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 6px;
-  font-family: var(--font-mono);
-}
-.metric-val {
-  font-family: var(--font-mono);
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-primary);
-  line-height: 1;
-}
-.metric-unit {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--text-secondary);
-}
-
-/* ============================================================
-   SOC TRACK BAR
-   ============================================================ */
-.soc-track {
-  height: 5px;
-  background: var(--bg-overlay);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-top: 8px;
-}
-.soc-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.4s, background 0.4s;
-}
-
-/* ============================================================
-   GRAPH AREAS
-   ============================================================ */
-.graph-label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 8px;
-}
-.vis-area {
-  background: var(--bg-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-md);
-  padding: 12px;
-  margin-bottom: 20px;
-  overflow: hidden;
-}
-canvas {
-  width: 100%;
-  display: block;
-}
-
-/* ============================================================
-   ACTION BUTTONS
-   ============================================================ */
-.action-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-  align-items: center;
-}
-.act-btn {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  padding: 9px 20px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--border-default);
-  background: var(--bg-raised);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.act-btn:hover { background: var(--bg-overlay); color: var(--text-primary); border-color: var(--border-strong); }
-.act-btn.primary { background: var(--teal);  color: #0d0f12; border-color: var(--teal);  font-weight: 600; }
-.act-btn.primary:hover { background: #22d496; border-color: #22d496; }
-.act-btn.danger  { background: var(--red);   color: #fff;    border-color: var(--red);   font-weight: 600; }
-.act-btn.danger:hover  { background: #f07050; border-color: #f07050; }
-.act-btn.warn    { background: var(--amber); color: #0d0f12; border-color: var(--amber); font-weight: 600; }
-.act-btn.learn   { color: var(--teal); border-color: rgba(29,184,126,0.25); background: var(--teal-dim); font-size: 12px; }
-.act-btn.learn:hover { background: var(--teal-mid); }
-
-/* ============================================================
-   INFO BOX
-   ============================================================ */
-.info-box {
-  background: rgba(29,184,126,0.05);
-  border: 1px solid rgba(29,184,126,0.15);
-  border-radius: var(--r-md);
-  padding: 12px 16px;
-  font-size: 13px;
-  color: #a0d8c0;
-  line-height: 1.65;
-  font-family: var(--font-mono);
-  word-break: break-word;
-}
-
-/* ============================================================
-   DIVIDER
-   ============================================================ */
-.divider {
-  height: 1px;
-  background: var(--border-subtle);
-  margin: 20px 0;
-}
-
-/* ============================================================
-   CELL BUILDER
-   ============================================================ */
-.cell-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.cell-part {
-  background: var(--bg-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-md);
-  padding: 12px;
-}
-.cell-part-title {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 10px;
-}
-
-/* Cell result table */
-.result-table {
-  background: var(--bg-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-md);
-  overflow: hidden;
-  margin-bottom: 20px;
-}
-.result-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  font-size: 13px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border-subtle);
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.sim-nav { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.sim-btn { font-size: 13px; font-weight: 500; padding: 7px 16px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-secondary); cursor: pointer; transition: all .15s; }
+.sim-btn.active { background: #1D9E75; color: #E1F5EE; border-color: #1D9E75; }
+.sim-btn:hover:not(.active) { background: var(--color-background-secondary); }
+.module { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; background: var(--color-background-primary); margin-bottom: 1.5rem; }
+.mod-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 1rem; }
+.row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+.lbl { font-size: 13px; color: var(--color-text-secondary); min-width: 120px; }
+.val { font-size: 13px; font-weight: 500; color: var(--color-text-primary); min-width: 48px; text-align: right; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
+.metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: .75rem 1rem; }
+.metric-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; }
+.metric-val { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+.metric-unit { font-size: 12px; color: var(--color-text-secondary); font-weight: 400; }
+canvas { width: 100%; display: block; }
+.vis-area { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); background: var(--color-background-secondary); padding: 1rem; margin-bottom: 1rem; position: relative; height: 200px; }
+.action-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.act-btn { font-size: 13px; padding: 7px 18px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-primary); cursor: pointer; font-weight: 500; }
+.act-btn:hover { background: var(--color-background-secondary); }
+.act-btn.primary { background: #1D9E75; color: #E1F5EE; border-color: #1D9E75; }
+.act-btn.danger { background: #D85A30; color: #FAECE7; border-color: #D85A30; }
+.tag { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+.tag-teal { background: #E1F5EE; color: #0F6E56; }
+.tag-blue { background: #E6F1FB; color: #185FA5; }
+.tag-amber { background: #FAEEDA; color: #633806; }
+.tag-coral { background: #FAECE7; color: #712B13; }
+.info-box { background: #E1F5EE; border-radius: var(--border-radius-md); padding: .75rem 1rem; font-size: 13px; color: #085041; margin-top: 1rem; line-height: 1.6; }
+.cell-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1rem; }
+.cell-part { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: .75rem; }
+.cell-part-title { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
+select { font-size: 13px; width: 100%; padding: 6px 8px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); }
+.result-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
 .result-row:last-child { border-bottom: none; }
-.result-key { color: var(--text-secondary); }
-.result-val { font-weight: 500; font-family: var(--font-mono); color: var(--text-primary); text-align: right; }
-
-/* Stoich bar standalone */
-.stoich-label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 6px;
-}
-.stoich-track {
-  height: 7px;
-  background: var(--bg-overlay);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 24px;
-}
-.stoich-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.35s, background 0.35s;
-}
-
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
-@media (max-width: 600px) {
-  .app-shell { padding: 16px 14px 36px; }
-  .page-header { flex-direction: column; }
-  .header-badge { align-self: flex-start; }
-  .sim-nav { gap: 4px; }
-  .sim-btn { font-size: 12px; padding: 8px 12px; min-width: 90px; }
-  .module { padding: 16px; }
-  .lbl { min-width: 110px; font-size: 12px; }
-  .val { min-width: 55px; font-size: 12px; }
-  .metrics { grid-template-columns: repeat(2, 1fr); }
-  .metric-val { font-size: 18px; }
-  .cell-grid { grid-template-columns: 1fr; }
-  .action-row { gap: 8px; }
-  .act-btn { font-size: 12px; padding: 8px 14px; }
-  .result-row { flex-direction: column; align-items: flex-start; gap: 2px; }
-  .result-val { text-align: left; }
-  .sys-detail { display: none; }
-}
-
-@media (max-width: 400px) {
-  .metrics { grid-template-columns: 1fr 1fr; }
-  .row { flex-wrap: wrap; }
-  input[type="range"] { min-width: 100%; }
-}
+.result-key { color: var(--color-text-secondary); }
+.result-val { font-weight: 500; color: var(--color-text-primary); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
 </style>
-</head>
-<body>
 
-<div class="app-shell">
-
-  <!-- PAGE HEADER -->
-  <div class="page-header">
-    <div class="header-left">
-      <div class="header-eyebrow">Interactive simulation</div>
-      <h1 class="header-title">Electrochemical Energy Simulator</h1>
-      <p class="header-sub">Battery · Fuel Cell · Cell Builder — with live BMS, thermals &amp; graphs</p>
-    </div>
-    <div class="header-badge">v2.0 · FINALIZED</div>
-  </div>
-
-  <!-- SYSTEM STATUS BAR -->
-  <div class="sys-bar" id="sys-bar">
-    <div>
-      <div class="sys-label">System mode</div>
-      <div class="sys-mode-txt" id="sys-mode-txt">Battery mode</div>
-    </div>
-    <div id="sys-detail" class="sys-detail">SOC: 72% · Temp: 28°C</div>
-  </div>
-
-  <!-- ALERT STACK -->
-  <div class="alert-stack" id="alert-stack"></div>
-
-  <!-- TAB NAVIGATION -->
+<div style="padding: 1rem 0;">
   <div class="sim-nav">
-    <button class="sim-btn active" onclick="showModule('battery')">⚡ Battery simulator</button>
-    <button class="sim-btn" onclick="showModule('fuelcell')">💧 Fuel cell simulator</button>
-    <button class="sim-btn" onclick="showModule('builder')">🔬 Cell builder</button>
+    <button class="sim-btn active" onclick="showModule('battery')">Battery simulator</button>
+    <button class="sim-btn" onclick="showModule('fuelcell')">Fuel cell simulator</button>
+    <button class="sim-btn" onclick="showModule('builder')">Cell builder</button>
   </div>
 
-  <!-- ================================================================
-       BATTERY MODULE
-       ================================================================ -->
   <div id="mod-battery">
     <div class="module">
-      <div class="mod-header">
-        <div class="mod-title">Battery Charge / Discharge</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <div class="mod-title">Battery charge / discharge</div>
         <span class="tag tag-teal" id="batt-type-tag">Li-ion</span>
       </div>
-
-      <div class="control-section">
-        <div class="row">
-          <span class="lbl">Battery type</span>
-          <select id="batt-type" onchange="battTypeChange()">
-            <option value="liion">Lithium-ion (Li-ion)</option>
-            <option value="leadacid">Lead-acid</option>
-            <option value="solidstate">Solid-state</option>
-          </select>
-        </div>
-        <div class="row">
-          <span class="lbl">Capacity (Ah)</span>
-          <input type="range" id="batt-cap" min="10" max="200" value="100" step="5" oninput="updateBatt()">
-          <span class="val" id="batt-cap-out">100 Ah</span>
-        </div>
-        <div class="row">
-          <span class="lbl">Charge rate (C)</span>
-          <input type="range" id="batt-rate" min="1" max="5" value="1" step="1" oninput="updateBatt()">
-          <span class="val" id="batt-rate-out">1C</span>
-        </div>
+      <div class="row">
+        <span class="lbl">Battery type</span>
+        <select id="batt-type" onchange="battTypeChange()" style="flex:1;">
+          <option value="liion">Lithium-ion (Li-ion)</option>
+          <option value="leadacid">Lead-acid</option>
+          <option value="solidstate">Solid-state</option>
+        </select>
       </div>
-
-      <!-- METRICS -->
+      <div class="row">
+        <span class="lbl">Capacity (Ah)</span>
+        <input type="range" id="batt-cap" min="10" max="200" value="100" step="5" style="flex:1;" oninput="updateBatt()">
+        <span class="val" id="batt-cap-out">100 Ah</span>
+      </div>
+      <div class="row">
+        <span class="lbl">Charge rate (C)</span>
+        <input type="range" id="batt-rate" min="1" max="5" value="1" step="1" style="flex:1;" oninput="updateBatt()">
+        <span class="val" id="batt-rate-out">1C</span>
+      </div>
       <div class="metrics" id="batt-metrics">
-        <div class="metric" id="m-soc-card">
-          <div class="metric-label">State of charge</div>
-          <div class="metric-val" id="m-soc">72<span class="metric-unit">%</span></div>
-          <div class="soc-track"><div class="soc-fill" id="soc-fill" style="width:72%;background:var(--teal)"></div></div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Voltage</div>
-          <div class="metric-val" id="m-volt">3.7<span class="metric-unit">V</span></div>
-        </div>
-        <div class="metric" id="m-temp-card">
-          <div class="metric-label">Temperature</div>
-          <div class="metric-val" id="m-temp">28<span class="metric-unit">°C</span></div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Time to full</div>
-          <div class="metric-val" id="m-ttf">28<span class="metric-unit">min</span></div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Cycles remaining</div>
-          <div class="metric-val" id="m-cyc">520</div>
-        </div>
+        <div class="metric"><div class="metric-label">State of charge</div><div class="metric-val" id="m-soc">72<span class="metric-unit">%</span></div></div>
+        <div class="metric"><div class="metric-label">Voltage</div><div class="metric-val" id="m-volt">3.7<span class="metric-unit">V</span></div></div>
+        <div class="metric"><div class="metric-label">Time to full</div><div class="metric-val" id="m-ttf">28<span class="metric-unit">min</span></div></div>
+        <div class="metric"><div class="metric-label">Cycles remaining</div><div class="metric-val" id="m-cyc">520</div></div>
       </div>
-
-      <!-- LIVE SOC GRAPH -->
-      <div class="graph-label">Live SOC over time</div>
-      <div class="vis-area" style="height:148px; margin-bottom:20px;">
-        <canvas id="live-canvas" height="124"></canvas>
+      <div class="vis-area">
+        <canvas id="batt-canvas" height="168"></canvas>
       </div>
-
-      <!-- CHARGE CURVE -->
-      <div class="graph-label">Charge curve (SOC%)</div>
-      <div class="vis-area" style="height:156px;">
-        <canvas id="batt-canvas" height="132"></canvas>
-      </div>
-
       <div class="action-row">
-        <button class="act-btn primary" id="batt-play-btn" onclick="toggleBatt()">▶ Start charging</button>
-        <button class="act-btn danger" onclick="resetBatt()">↺ Reset</button>
-        <button class="act-btn learn" onclick="sendPrompt('Explain how lithium-ion battery degradation works over charge cycles')">Learn more ↗</button>
+        <button class="act-btn primary" id="batt-play-btn" onclick="toggleBatt()">Start charging</button>
+        <button class="act-btn danger" onclick="resetBatt()">Reset</button>
+        <button class="act-btn" onclick="sendPrompt('Explain how lithium-ion battery degradation works over charge cycles') ">Learn more ↗</button>
       </div>
-
       <div class="info-box" id="batt-info">Lithium-ion batteries use intercalation — lithium ions move between graphite anode and lithium oxide cathode through a liquid electrolyte. They offer high energy density (~250 Wh/kg) and are used in EVs and smartphones.</div>
     </div>
   </div>
 
-  <!-- ================================================================
-       FUEL CELL MODULE
-       ================================================================ -->
-  <div id="mod-fuelcell" style="display:none">
+  <div id="mod-fuelcell" style="display:none;">
     <div class="module">
-      <div class="mod-header">
-        <div class="mod-title">Hydrogen Fuel Cell Reaction</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <div class="mod-title">Hydrogen fuel cell reaction</div>
         <span class="tag tag-blue" id="fc-status-tag">Idle</span>
       </div>
-
-      <div class="control-section">
-        <div class="row">
-          <span class="lbl">H₂ flow (L/min)</span>
-          <input type="range" id="fc-h2" min="1" max="20" value="8" step="1" oninput="updateFC()">
-          <span class="val" id="fc-h2-out">8 L/min</span>
-        </div>
-        <div class="row">
-          <span class="lbl">O₂ flow (L/min)</span>
-          <input type="range" id="fc-o2" min="1" max="20" value="4" step="1" oninput="updateFC()">
-          <span class="val" id="fc-o2-out">4 L/min</span>
-        </div>
-        <div class="row">
-          <span class="lbl">Temperature (°C)</span>
-          <input type="range" id="fc-temp" min="60" max="120" value="80" step="5" oninput="updateFC()">
-          <span class="val" id="fc-temp-out">80°C</span>
-        </div>
+      <div class="row">
+        <span class="lbl">H₂ flow rate (L/min)</span>
+        <input type="range" id="fc-h2" min="1" max="20" value="8" step="1" style="flex:1;" oninput="updateFC()">
+        <span class="val" id="fc-h2-out">8 L/min</span>
       </div>
-
-      <!-- STOICHIOMETRY BAR -->
-      <div class="stoich-label">H₂ : O₂ stoichiometry — ideal = 2 : 1</div>
-      <div class="stoich-track">
-        <div class="stoich-fill" id="fc-ratio-bar" style="width:100%;background:var(--teal)"></div>
+      <div class="row">
+        <span class="lbl">O₂ flow rate (L/min)</span>
+        <input type="range" id="fc-o2" min="1" max="20" value="4" step="1" style="flex:1;" oninput="updateFC()">
+        <span class="val" id="fc-o2-out">4 L/min</span>
       </div>
-
-      <!-- METRICS -->
+      <div class="row">
+        <span class="lbl">Temperature (°C)</span>
+        <input type="range" id="fc-temp" min="60" max="120" value="80" step="5" style="flex:1;" oninput="updateFC()">
+        <span class="val" id="fc-temp-out">80°C</span>
+      </div>
       <div class="metrics">
-        <div class="metric">
-          <div class="metric-label">Power output</div>
-          <div class="metric-val" id="fc-power">0<span class="metric-unit">W</span></div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Efficiency</div>
-          <div class="metric-val" id="fc-eff">0<span class="metric-unit">%</span></div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">H₂O produced</div>
-          <div class="metric-val" id="fc-water">0<span class="metric-unit">g/min</span></div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Cell voltage</div>
-          <div class="metric-val" id="fc-volt">0<span class="metric-unit">V</span></div>
-        </div>
+        <div class="metric"><div class="metric-label">Power output</div><div class="metric-val" id="fc-power">0<span class="metric-unit">W</span></div></div>
+        <div class="metric"><div class="metric-label">Efficiency</div><div class="metric-val" id="fc-eff">0<span class="metric-unit">%</span></div></div>
+        <div class="metric"><div class="metric-label">H₂O produced</div><div class="metric-val" id="fc-water">0<span class="metric-unit">g/min</span></div></div>
+        <div class="metric"><div class="metric-label">Cell voltage</div><div class="metric-val" id="fc-volt">0<span class="metric-unit">V</span></div></div>
       </div>
-
-      <!-- FC VISUALIZATION -->
-      <div class="graph-label">Fuel cell diagram</div>
-      <div class="vis-area" style="height:188px;">
-        <canvas id="fc-canvas" height="164"></canvas>
+      <div class="vis-area" id="fc-vis">
+        <canvas id="fc-canvas" height="168"></canvas>
       </div>
-
       <div class="action-row">
-        <button class="act-btn primary" id="fc-play-btn" onclick="toggleFC()">▶ Start reaction</button>
-        <button class="act-btn danger" onclick="resetFC()">■ Stop</button>
-        <button class="act-btn learn" onclick="sendPrompt('What are bifunctional catalysts in fuel cells and how do they improve efficiency?')">Learn more ↗</button>
+        <button class="act-btn primary" id="fc-play-btn" onclick="toggleFC()">Start reaction</button>
+        <button class="act-btn danger" onclick="resetFC()">Stop</button>
+        <button class="act-btn" onclick="sendPrompt('What are bifunctional catalysts in fuel cells and how do they improve efficiency?')">Learn more ↗</button>
       </div>
-
-      <div class="info-box">
-        Anode: 2H₂ → 4H⁺ + 4e⁻ &nbsp;|&nbsp; Cathode: O₂ + 4H⁺ + 4e⁻ → 2H₂O<br>
-        Net: 2H₂ + O₂ → 2H₂O + electricity &nbsp;|&nbsp; Ideal H₂:O₂ ratio = 2:1. Off-ratio reduces efficiency.
-      </div>
+      <div class="info-box">Anode: 2H₂ → 4H⁺ + 4e⁻ &nbsp;|&nbsp; Cathode: O₂ + 4H⁺ + 4e⁻ → 2H₂O &nbsp;|&nbsp; Net: 2H₂ + O₂ → 2H₂O + electricity. Only by-product is water.</div>
     </div>
   </div>
 
-  <!-- ================================================================
-       CELL BUILDER MODULE
-       ================================================================ -->
-  <div id="mod-builder" style="display:none">
+  <div id="mod-builder" style="display:none;">
     <div class="module">
-      <div class="mod-header">
-        <div class="mod-title">Electrochemical Cell Builder</div>
-        <span class="tag tag-teal">OCV Analyser</span>
-      </div>
-
+      <div class="mod-title" style="margin-bottom:1rem;">Electrochemical cell builder</div>
       <div class="cell-grid">
         <div class="cell-part">
           <div class="cell-part-title">Anode (−)</div>
@@ -825,873 +163,344 @@ canvas {
           </select>
         </div>
       </div>
-
-      <!-- CELL VISUALIZATION -->
-      <div class="graph-label">Cell diagram</div>
-      <div class="vis-area" style="height:168px; margin-bottom:20px;">
-        <canvas id="bl-canvas" height="144"></canvas>
+      <div class="vis-area" style="height:180px;">
+        <canvas id="bl-canvas" height="148"></canvas>
       </div>
-
-      <!-- RESULTS TABLE -->
-      <div class="result-table">
-        <div class="result-row">
-          <span class="result-key">Cell voltage (OCV)</span>
-          <span class="result-val" id="bl-volt">—</span>
-        </div>
-        <div class="result-row">
-          <span class="result-key">Compatibility</span>
-          <span class="result-val" id="bl-compat">—</span>
-        </div>
-        <div class="result-row">
-          <span class="result-key">Electrolyte type</span>
-          <span class="result-val" id="bl-elec-type">—</span>
-        </div>
-        <div class="result-row">
-          <span class="result-key">Sustainability</span>
-          <span class="result-val" id="bl-sustain">—</span>
-        </div>
-        <div class="result-row">
-          <span class="result-key">Primary use case</span>
-          <span class="result-val" id="bl-use">—</span>
-        </div>
+      <div style="border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: .75rem 1rem; margin-bottom: 1rem;">
+        <div class="result-row"><span class="result-key">Cell voltage (OCV)</span><span class="result-val" id="bl-volt">—</span></div>
+        <div class="result-row"><span class="result-key">Compatibility</span><span class="result-val" id="bl-compat">—</span></div>
+        <div class="result-row"><span class="result-key">Electrolyte type</span><span class="result-val" id="bl-elec-type">—</span></div>
+        <div class="result-row"><span class="result-key">Sustainability</span><span class="result-val" id="bl-sustain">—</span></div>
+        <div class="result-row"><span class="result-key">Use case</span><span class="result-val" id="bl-use">—</span></div>
       </div>
-
       <div class="action-row">
         <button class="act-btn primary" onclick="calcCell()">Analyse cell</button>
-        <button class="act-btn learn" onclick="sendPrompt('Explain the role of biomass-derived electrode materials in sustainable batteries')">Learn more ↗</button>
+        <button class="act-btn" onclick="sendPrompt('Explain the role of biomass-derived electrode materials in sustainable batteries')">Learn more ↗</button>
       </div>
-
       <div class="info-box" id="bl-info">Select anode, electrolyte, and cathode above to analyse the electrochemical cell's properties and performance.</div>
     </div>
   </div>
-
-</div><!-- /app-shell -->
+</div>
 
 <script>
-/* ============================================================
-   STATE
-   ============================================================ */
-var battSOC       = 72;
-var battTemp      = 28;
-var battCharging  = false;
-var battInterval  = null;
-var coolInterval  = null;
-var fcRunning     = false;
-var fcInterval    = null;
-var fcAutoActive  = false;
-var liveSOCHistory = [];
-var simTime       = 0;
-
-/* ============================================================
-   BATTERY CONFIGS
-   ============================================================ */
-var battTypes = {
-  liion:      { volt: 3.7, maxCyc: 1000, label: 'Li-ion',      tag: 'tag-teal',  info: 'Lithium-ion batteries use intercalation — lithium ions move between graphite anode and lithium oxide cathode through a liquid electrolyte. They offer high energy density (~250 Wh/kg) and are used in EVs and smartphones.' },
-  leadacid:   { volt: 2.0, maxCyc: 500,  label: 'Lead-acid',   tag: 'tag-amber', info: 'Lead-acid batteries use a Pb anode and PbO₂ cathode in H₂SO₄ electrolyte. Lower energy density (~40 Wh/kg) but cheap and reliable — widely used for vehicle starting power.' },
-  solidstate: { volt: 4.0, maxCyc: 2000, label: 'Solid-state', tag: 'tag-blue',  info: 'Solid-state batteries replace liquid electrolyte with a solid ceramic or polymer. They promise higher safety, energy density (~400 Wh/kg), and cycle life — the future of EV batteries.' }
-};
-
-/* ============================================================
-   CELL BUILDER DATA
-   ============================================================ */
-var cellData = {
-  anode: {
-    zn:    { v: 0.76, name: 'Zinc',       eco: 'Medium', rx: 'Zn → Zn²⁺ + 2e⁻' },
-    li:    { v: 3.04, name: 'Lithium',    eco: 'Low',    rx: 'Li → Li⁺ + e⁻' },
-    pb:    { v: 0.13, name: 'Lead',       eco: 'Low',    rx: 'Pb → Pb²⁺ + 2e⁻' },
-    fe:    { v: 0.44, name: 'Iron',       eco: 'High',   rx: 'Fe → Fe²⁺ + 2e⁻' },
-    bmass: { v: 0.60, name: 'Biomass C',  eco: 'High',   rx: 'C → CO₂ + 4e⁻' }
-  },
-  cath: {
-    mno2:   { v: 1.23, name: 'MnO₂',     eco: 'Medium', use: 'Alkaline batteries' },
-    licoo2: { v: 3.90, name: 'LiCoO₂',   eco: 'Low',    use: 'Li-ion batteries' },
-    pbo2:   { v: 1.69, name: 'PbO₂',     eco: 'Low',    use: 'Lead-acid batteries' },
-    air:    { v: 1.23, name: 'Air (O₂)',  eco: 'High',   use: 'Metal-air batteries' },
-    bmass:  { v: 0.80, name: 'Biomass C', eco: 'High',   use: 'Sustainable EV batteries' }
-  },
-  elec: {
-    h2so4: { name: 'Acidic',        type: 'Liquid acid',     compat: ['pb', 'zn'] },
-    koh:   { name: 'Alkaline',      type: 'Liquid base',     compat: ['zn', 'fe', 'bmass'] },
-    licl:  { name: 'Organic',       type: 'Liquid organic',  compat: ['li'] },
-    solid: { name: 'Solid polymer', type: 'Solid state',     compat: ['li', 'bmass'] }
-  }
-};
-
-/* ============================================================
-   sendPrompt — available if embedded in Claude artifact env
-   ============================================================ */
-function sendPrompt(text) {
-  if (typeof window.sendPrompt === 'function') {
-    window.sendPrompt(text);
-  } else {
-    console.info('sendPrompt:', text);
-  }
-}
-
-/* ============================================================
-   NAVIGATION
-   ============================================================ */
 function showModule(id) {
-  ['battery', 'fuelcell', 'builder'].forEach(function(m) {
-    document.getElementById('mod-' + m).style.display = (m === id) ? '' : 'none';
+  ['battery','fuelcell','builder'].forEach(m => {
+    document.getElementById('mod-'+m).style.display = m===id ? '' : 'none';
   });
-  document.querySelectorAll('.sim-btn').forEach(function(b, i) {
-    b.classList.toggle('active', ['battery', 'fuelcell', 'builder'][i] === id);
+  document.querySelectorAll('.sim-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['battery','fuelcell','builder'][i]===id);
   });
-  if (id === 'battery')  { drawBattChart(); drawLiveGraph(); }
-  if (id === 'fuelcell') { drawFCChart(); }
-  if (id === 'builder')  { calcCell(); drawCellVis(); }
+  if(id==='battery') drawBattChart();
+  if(id==='fuelcell') drawFCChart();
+  if(id==='builder') { calcCell(); drawCellVis(); }
 }
 
-/* ============================================================
-   ALERT SYSTEM
-   ============================================================ */
-var _lastAlertKey = '';
+var battSOC = 72, battCharging = false, battInterval = null;
+var fcRunning = false, fcInterval = null, fcTime = 0;
 
-function pushAlerts(alerts) {
-  var stack = document.getElementById('alert-stack');
-  var key   = alerts.map(function(a) { return a.msg; }).join('|');
-  if (key === _lastAlertKey) return;
-  _lastAlertKey = key;
-  stack.innerHTML = '';
-  alerts.forEach(function(a) {
-    var el = document.createElement('div');
-    el.className = 'alert ' + a.cls;
-    el.innerHTML = '<span class="alert-dot ' + a.dot + '"></span>' + a.msg;
-    stack.appendChild(el);
-  });
-}
+var battTypes = {
+  liion:     {volt:3.7, maxCyc:1000, label:'Li-ion',     tag:'tag-teal',  info:'Lithium-ion batteries use intercalation — lithium ions move between graphite anode and lithium oxide cathode through a liquid electrolyte. They offer high energy density (~250 Wh/kg) and are used in EVs and smartphones.'},
+  leadacid:  {volt:2.0, maxCyc:500,  label:'Lead-acid',  tag:'tag-amber', info:'Lead-acid batteries use Pb anode and PbO₂ cathode in H₂SO₄ electrolyte. Lower energy density (~40 Wh/kg) but cheap and reliable — used in automobiles for starting power.'},
+  solidstate:{volt:4.0, maxCyc:2000, label:'Solid-state', tag:'tag-blue', info:'Solid-state batteries replace liquid electrolyte with a solid ceramic or polymer. They promise higher safety, energy density (~400 Wh/kg), and cycle life — the future of EV batteries.'}
+};
 
-function computeAlerts() {
-  var alerts = [];
-  var h2 = parseFloat(document.getElementById('fc-h2').value) || 0;
-  var o2 = parseFloat(document.getElementById('fc-o2').value) || 0;
-
-  /* Fuel cell ratio check */
-  if (fcRunning && o2 > 0) {
-    var idealO2   = h2 / 2;
-    var ratioDiff = Math.abs(o2 - idealO2) / Math.max(idealO2, 0.001);
-    if (ratioDiff > 0.25) {
-      alerts.push({ cls: 'alert-warn', dot: 'dot-warn', msg: 'Fuel cell: H₂:O₂ ratio imbalanced (ideal 2:1). Efficiency reduced.' });
-    }
-  }
-
-  /* Low SOC — suggest fuel cell backup */
-  if (battSOC < 20 && !fcRunning) {
-    alerts.push({ cls: 'alert-warn', dot: 'dot-warn', msg: 'Battery SOC below 20% — fuel cell backup recommended.' });
-  }
-
-  /* Overcharge warning */
-  if (battSOC >= 95 && battCharging) {
-    alerts.push({ cls: 'alert-danger', dot: 'dot-danger', msg: 'Overcharge warning: SOC ≥ 95%. Charging will taper.' });
-  }
-
-  /* Temperature warnings */
-  if (battTemp >= 50) {
-    alerts.push({ cls: 'alert-danger', dot: 'dot-danger', msg: 'Critical: Battery temperature ≥ 50°C. Charging halted automatically.' });
-  } else if (battTemp >= 45) {
-    alerts.push({ cls: 'alert-warn', dot: 'dot-warn', msg: 'Warning: Battery temperature ≥ 45°C. Consider reducing charge rate.' });
-  }
-
-  /* FC auto-active notice */
-  if (fcAutoActive) {
-    alerts.push({ cls: 'alert-info', dot: 'dot-info', msg: 'Fuel cell backup active — supplementing battery charge.' });
-  }
-
-  pushAlerts(alerts);
-}
-
-/* ============================================================
-   SYSTEM STATUS BAR
-   ============================================================ */
-function updateSystemBar() {
-  var bar    = document.getElementById('sys-bar');
-  var txt    = document.getElementById('sys-mode-txt');
-  var detail = document.getElementById('sys-detail');
-
-  bar.className = 'sys-bar';
-
-  if (battTemp >= 50) {
-    bar.classList.add('mode-warn');
-    txt.textContent = 'System warning: overheating';
-  } else if (fcAutoActive) {
-    bar.classList.add('mode-fc');
-    txt.textContent = 'Fuel cell backup active';
-  } else {
-    bar.classList.add('mode-batt');
-    txt.textContent = battCharging ? 'Battery charging…' : 'Battery mode';
-  }
-
-  detail.textContent = 'SOC: ' + Math.round(battSOC) + '% · Temp: ' + Math.round(battTemp) + '°C';
-  computeAlerts();
-}
-
-/* ============================================================
-   BATTERY LOGIC
-   ============================================================ */
 function battTypeChange() {
-  var t  = document.getElementById('batt-type').value;
+  var t = document.getElementById('batt-type').value;
   var bt = battTypes[t];
   var tag = document.getElementById('batt-type-tag');
-  tag.className  = 'tag ' + bt.tag;
+  tag.className = 'tag ' + bt.tag;
   tag.textContent = bt.label;
   document.getElementById('batt-info').textContent = bt.info;
   updateBatt();
 }
 
-/* BMS smart charge rate — tapers at high SOC */
-function smartChargeRate() {
-  var base = parseFloat(document.getElementById('batt-rate').value) || 1;
-  if (battSOC > 95) return base * 0.1;
-  if (battSOC > 80) return base * 0.5;
-  if (battSOC < 30) return base * 1.2;
-  return base;
-}
-
 function updateBatt() {
-  var cap  = parseFloat(document.getElementById('batt-cap').value)  || 100;
-  var rate = parseFloat(document.getElementById('batt-rate').value) || 1;
-  var t    = document.getElementById('batt-type').value;
-  var bt   = battTypes[t];
-
-  document.getElementById('batt-cap-out').textContent  = cap  + ' Ah';
+  var cap = +document.getElementById('batt-cap').value;
+  var rate = +document.getElementById('batt-rate').value;
+  var t = document.getElementById('batt-type').value;
+  var bt = battTypes[t];
+  document.getElementById('batt-cap-out').textContent = cap + ' Ah';
   document.getElementById('batt-rate-out').textContent = rate + 'C';
-
-  /* Type-dependent open-circuit voltage */
-  var vNow;
-  if      (t === 'liion')     vNow = (3.0 + (battSOC / 100) * 0.9).toFixed(2);
-  else if (t === 'leadacid')  vNow = (1.75 + (battSOC / 100) * 0.45).toFixed(2);
-  else                        vNow = (3.4  + (battSOC / 100) * 0.8).toFixed(2);
-
-  document.getElementById('m-volt').innerHTML = vNow + '<span class="metric-unit">V</span>';
-
-  /* Time to full using smart rate */
-  var effRate = smartChargeRate();
-  var rawTTF  = (effRate > 0) ? ((100 - battSOC) / (effRate * 100) * 60) : 0;
-  var ttf     = Math.max(0, Math.round(rawTTF));
+  document.getElementById('m-volt').innerHTML = bt.volt + '<span class="metric-unit">V</span>';
+  var ttf = Math.round((100 - battSOC) / (rate * 100) * 60);
   document.getElementById('m-ttf').innerHTML = ttf + '<span class="metric-unit">min</span>';
-
-  /* Estimated remaining cycles */
-  var cyc = Math.round(bt.maxCyc * (1 - (100 - battSOC) / 200));
+  var cyc = Math.round(bt.maxCyc * (1 - (100-battSOC)/200));
   document.getElementById('m-cyc').textContent = cyc;
-
-  /* SOC fill bar */
-  var socPct = Math.round(Math.min(100, Math.max(0, battSOC)));
-  document.getElementById('m-soc').innerHTML = socPct + '<span class="metric-unit">%</span>';
-  var fill = document.getElementById('soc-fill');
-  fill.style.width      = socPct + '%';
-  fill.style.background = socPct > 80 ? 'var(--teal)' : socPct > 20 ? 'var(--amber)' : 'var(--red)';
-
-  /* Temperature display */
-  document.getElementById('m-temp').innerHTML = Math.round(battTemp) + '<span class="metric-unit">°C</span>';
-  var tempCard    = document.getElementById('m-temp-card');
-  tempCard.className = 'metric' +
-    (battTemp >= 50 ? ' danger' : battTemp >= 45 ? ' warn' : '');
-
   drawBattChart();
-  drawLiveGraph();
-  updateSystemBar();
 }
 
 function drawBattChart() {
   var c = document.getElementById('batt-canvas');
-  if (!c || !c.offsetWidth) return;
+  if(!c) return;
   var ctx = c.getContext('2d');
-  var W   = c.offsetWidth;
-  var H   = 132;
-  c.width  = W;
-  c.height = H;
-
-  ctx.clearRect(0, 0, W, H);
-
-  var padL = 38, padR = 12, padT = 14, padB = 18;
-  var chartW = W - padL - padR;
-  var chartH = H - padT - padB;
-
-  /* Grid lines */
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth   = 0.5;
-  for (var i = 0; i <= 4; i++) {
-    var y = padT + chartH * i / 4;
-    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
-    ctx.fillStyle   = 'rgba(255,255,255,0.3)';
-    ctx.font        = '9px var(--font-mono, monospace)';
-    ctx.textAlign   = 'right';
-    ctx.fillText((100 - i * 25) + '%', padL - 4, y + 3);
+  var W = c.offsetWidth || 580, H = 168;
+  c.width = W; c.height = H;
+  var isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  ctx.clearRect(0,0,W,H);
+  var pad = 36;
+  var chartW = W - pad*2, chartH = H - 24;
+  ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
+  ctx.lineWidth = 0.5;
+  for(var i=0;i<=4;i++){
+    var y = pad/2 + (chartH - pad/2) * i/4;
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W-pad, y); ctx.stroke();
+    ctx.fillStyle = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)';
+    ctx.font = '10px var(--font-sans)';
+    ctx.textAlign = 'right';
+    ctx.fillText((100 - i*25)+'%', pad-4, y+3);
   }
-
-  /* BMS zones */
-  ctx.save();
-  ctx.fillStyle = 'rgba(232,162,48,0.08)';
-  ctx.fillRect(padL + chartW * 0.8, padT, chartW * 0.15, chartH);
-  ctx.fillStyle = 'rgba(224,92,58,0.10)';
-  ctx.fillRect(padL + chartW * 0.95, padT, chartW * 0.05, chartH);
-  ctx.fillStyle = 'rgba(232,162,48,0.5)';
-  ctx.font = '8px var(--font-mono, monospace)';
-  ctx.textAlign = 'center';
-  ctx.fillText('Taper', padL + chartW * 0.875, padT + 10);
-  ctx.fillStyle = 'rgba(224,92,58,0.6)';
-  ctx.fillText('Tri.', padL + chartW * 0.975, padT + 10);
-  ctx.restore();
-
-  /* Charge curve */
+  var pts = [];
+  for(var x=0;x<=100;x++){
+    var soc = x;
+    var volt;
+    var t = document.getElementById('batt-type').value;
+    if(t==='liion') volt = 3.0 + (soc/100)*0.9 + (soc>80 ? (soc-80)*0.01 : 0);
+    else if(t==='leadacid') volt = 1.75 + (soc/100)*0.45;
+    else volt = 3.4 + (soc/100)*0.8;
+    pts.push({x: pad + x/100 * chartW, y: pad/2 + (1 - soc/100) * (chartH - pad/2)});
+  }
   ctx.beginPath();
-  ctx.strokeStyle = 'rgba(29,184,126,0.8)';
-  ctx.lineWidth   = 2;
-  for (var x = 0; x <= 100; x++) {
-    var px = padL + (x / 100) * chartW;
-    var py = padT + (1 - x / 100) * chartH;
-    x === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-  }
+  ctx.strokeStyle = '#1D9E75';
+  ctx.lineWidth = 2;
+  pts.forEach((p,i) => i===0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
   ctx.stroke();
-
-  /* SOC marker dot */
-  var sox = padL + (battSOC / 100) * chartW;
-  var soy = padT + (1 - battSOC / 100) * chartH;
+  var sx = pad + battSOC/100 * chartW;
+  var sy = pad/2 + (1 - battSOC/100) * (chartH - pad/2);
   ctx.beginPath();
-  ctx.arc(sox, soy, 5, 0, Math.PI * 2);
-  ctx.fillStyle   = 'var(--teal, #1db87e)';
+  ctx.arc(sx, sy, 5, 0, Math.PI*2);
+  ctx.fillStyle = '#1D9E75';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.6)';
-  ctx.lineWidth   = 2;
+  ctx.strokeStyle = isDark ? '#1a1a1a' : '#fff';
+  ctx.lineWidth = 2;
   ctx.stroke();
-
-  /* X-axis labels */
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font      = '9px var(--font-mono, monospace)';
+  ctx.fillStyle = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)';
+  ctx.font = '10px var(--font-sans)';
   ctx.textAlign = 'center';
-  ['0%', '25%', '50%', '75%', '100%'].forEach(function(l, i) {
-    ctx.fillText(l, padL + (i / 4) * chartW, H - 3);
+  ['0%','25%','50%','75%','100%'].forEach((l,i) => {
+    ctx.fillText(l, pad + i/4*chartW, H-2);
   });
-}
-
-function drawLiveGraph() {
-  var c = document.getElementById('live-canvas');
-  if (!c || !c.offsetWidth) return;
-  var ctx = c.getContext('2d');
-  var W   = c.offsetWidth;
-  var H   = 124;
-  c.width  = W;
-  c.height = H;
-
-  ctx.clearRect(0, 0, W, H);
-
-  var padL = 32, padR = 10, padT = 18, padB = 14;
-  var chartW = W - padL - padR;
-  var chartH = H - padT - padB;
-
-  if (liveSOCHistory.length < 2) {
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.font      = '12px var(--font-sans, sans-serif)';
-    ctx.textAlign = 'center';
-    ctx.fillText('Press "Start charging" to see live SOC graph', W / 2, H / 2);
-    return;
-  }
-
-  var minT   = liveSOCHistory[0].t;
-  var maxT   = liveSOCHistory[liveSOCHistory.length - 1].t;
-  var tRange = Math.max(maxT - minT, 0.001);
-
-  /* Grid lines */
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  ctx.lineWidth   = 0.5;
-  [0, 25, 50, 75, 100].forEach(function(v) {
-    var y = padT + (1 - v / 100) * chartH;
-    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
-    ctx.fillStyle   = 'rgba(255,255,255,0.25)';
-    ctx.font        = '8px var(--font-mono, monospace)';
-    ctx.textAlign   = 'right';
-    ctx.fillText(v + '%', padL - 3, y + 3);
-  });
-
-  /* FC-active highlight regions */
-  liveSOCHistory.forEach(function(pt, i) {
-    if (pt.fc && i < liveSOCHistory.length - 1) {
-      var x1 = padL + (pt.t - minT) / tRange * chartW;
-      var x2 = padL + (liveSOCHistory[i + 1].t - minT) / tRange * chartW;
-      ctx.fillStyle = 'rgba(232,162,48,0.08)';
-      ctx.fillRect(x1, padT, x2 - x1, chartH);
-    }
-  });
-
-  /* Temperature line (0–65°C mapped to chart) */
-  ctx.beginPath();
-  ctx.strokeStyle = 'rgba(232,162,48,0.6)';
-  ctx.lineWidth   = 1.5;
-  ctx.setLineDash([4, 3]);
-  liveSOCHistory.forEach(function(pt, i) {
-    var x = padL + (pt.t - minT) / tRange * chartW;
-    var y = padT + (1 - Math.min(pt.temp || 0, 65) / 65) * chartH;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  /* SOC line */
-  ctx.beginPath();
-  ctx.strokeStyle = 'var(--teal, #1db87e)';
-  ctx.lineWidth   = 2;
-  liveSOCHistory.forEach(function(pt, i) {
-    var x = padL + (pt.t - minT) / tRange * chartW;
-    var y = padT + (1 - pt.soc / 100) * chartH;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  /* Legend */
-  var lx = padL + 4;
-  var ly = 7;
-  ctx.fillStyle = 'rgba(29,184,126,0.9)';
-  ctx.fillRect(lx, ly - 1, 14, 3);
-  ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.font = '9px var(--font-mono, monospace)';
-  ctx.textAlign = 'left';
-  ctx.fillText('SOC', lx + 18, ly + 3);
-
-  ctx.fillStyle = 'rgba(232,162,48,0.8)';
-  ctx.fillRect(lx + 55, ly - 1, 14, 3);
-  ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.fillText('Temp (scaled)', lx + 73, ly + 3);
 }
 
 function toggleBatt() {
-  if (battCharging) {
-    /* Pause charging */
-    battCharging = false;
-    clearInterval(battInterval);
-    battInterval = null;
-    document.getElementById('batt-play-btn').textContent  = '▶ Start charging';
-    document.getElementById('batt-play-btn').className    = 'act-btn primary';
-    startCooling();
-  } else {
-    /* Start charging */
-    battCharging = true;
-    if (coolInterval) { clearInterval(coolInterval); coolInterval = null; }
-    document.getElementById('batt-play-btn').textContent  = '⏸ Pause charging';
-    document.getElementById('batt-play-btn').className    = 'act-btn danger';
-
-    battInterval = setInterval(function() {
-      var effRate = smartChargeRate();
-
-      battSOC  = Math.min(100, battSOC + effRate * 0.5);
-
-      /* Thermal model — heat proportional to rate & SOC level */
-      var heatFactor = (effRate / 5) * (battSOC > 80 ? 1.5 : 1.0);
-      battTemp = Math.min(65, battTemp + heatFactor * 0.3);
-
-      /* Record history */
-      simTime += 0.2;
-      liveSOCHistory.push({ t: simTime, soc: battSOC, temp: battTemp, fc: fcAutoActive });
-      if (liveSOCHistory.length > 220) liveSOCHistory.shift();
-
-      /* Auto-trigger FC backup when SOC critically low */
-      if (battSOC < 20 && !fcRunning) fcAutoActive = true;
-      if (fcAutoActive && !fcRunning)  battSOC = Math.min(100, battSOC + 0.3);
-      if (battSOC > 40)                fcAutoActive = false;
-
-      /* Auto-stop conditions */
-      if (battSOC >= 100) {
-        battSOC = 100;
-        stopCharging();
-        return;
-      }
-      if (battTemp >= 55) {
-        stopCharging();
-        return;
-      }
-
+  battCharging = !battCharging;
+  document.getElementById('batt-play-btn').textContent = battCharging ? 'Pause charging' : 'Start charging';
+  document.getElementById('batt-play-btn').className = battCharging ? 'act-btn danger' : 'act-btn primary';
+  if(battCharging) {
+    battInterval = setInterval(function(){
+      var rate = +document.getElementById('batt-rate').value;
+      battSOC = Math.min(100, battSOC + rate * 0.5);
+      document.getElementById('m-soc').innerHTML = Math.round(battSOC) + '<span class="metric-unit">%</span>';
       updateBatt();
+      if(battSOC >= 100) {
+        battCharging = false;
+        clearInterval(battInterval);
+        document.getElementById('batt-play-btn').textContent = 'Start charging';
+        document.getElementById('batt-play-btn').className = 'act-btn primary';
+      }
     }, 200);
+  } else {
+    clearInterval(battInterval);
   }
 }
 
-function stopCharging() {
+function resetBatt() {
+  battSOC = 20;
   battCharging = false;
   clearInterval(battInterval);
-  battInterval = null;
-  document.getElementById('batt-play-btn').textContent = '▶ Start charging';
-  document.getElementById('batt-play-btn').className   = 'act-btn primary';
-  startCooling();
+  document.getElementById('batt-play-btn').textContent = 'Start charging';
+  document.getElementById('batt-play-btn').className = 'act-btn primary';
+  document.getElementById('m-soc').innerHTML = '20<span class="metric-unit">%</span>';
   updateBatt();
 }
 
-function startCooling() {
-  if (coolInterval) return;
-  coolInterval = setInterval(function() {
-    if (battTemp > 22) {
-      battTemp = Math.max(22, battTemp - 0.5);
-      document.getElementById('m-temp').innerHTML = Math.round(battTemp) + '<span class="metric-unit">°C</span>';
-      updateSystemBar();
-    } else {
-      clearInterval(coolInterval);
-      coolInterval = null;
-    }
-  }, 500);
-}
-
-function resetBatt() {
-  battSOC       = 20;
-  battTemp      = 28;
-  battCharging  = false;
-  fcAutoActive  = false;
-  liveSOCHistory = [];
-  simTime       = 0;
-  clearInterval(battInterval);
-  clearInterval(coolInterval);
-  battInterval  = null;
-  coolInterval  = null;
-  document.getElementById('batt-play-btn').textContent = '▶ Start charging';
-  document.getElementById('batt-play-btn').className   = 'act-btn primary';
-  updateBatt();
-}
-
-/* ============================================================
-   FUEL CELL LOGIC
-   ============================================================ */
 function updateFC() {
-  var h2   = parseFloat(document.getElementById('fc-h2').value)   || 0;
-  var o2   = parseFloat(document.getElementById('fc-o2').value)   || 0;
-  var temp = parseFloat(document.getElementById('fc-temp').value) || 80;
-
-  document.getElementById('fc-h2-out').textContent   = h2   + ' L/min';
-  document.getElementById('fc-o2-out').textContent   = o2   + ' L/min';
+  var h2 = +document.getElementById('fc-h2').value;
+  var o2 = +document.getElementById('fc-o2').value;
+  var temp = +document.getElementById('fc-temp').value;
+  document.getElementById('fc-h2-out').textContent = h2 + ' L/min';
+  document.getElementById('fc-o2-out').textContent = o2 + ' L/min';
   document.getElementById('fc-temp-out').textContent = temp + '°C';
-
-  /* Ratio bar: how close are we to the ideal 2:1 ratio? */
-  var idealO2   = h2 / 2;
-  var ratioPct  = (idealO2 > 0)
-    ? Math.min(100, Math.max(0, 100 - Math.abs(o2 - idealO2) / idealO2 * 100))
-    : 0;
-  var ratioBar  = document.getElementById('fc-ratio-bar');
-  ratioBar.style.width      = ratioPct.toFixed(0) + '%';
-  ratioBar.style.background = ratioPct > 75 ? 'var(--teal)' : ratioPct > 40 ? 'var(--amber)' : 'var(--red)';
-
-  if (fcRunning) computeFCMetrics();
-  updateSystemBar();
+  if(fcRunning) computeFCMetrics();
 }
 
 function computeFCMetrics() {
-  var h2   = parseFloat(document.getElementById('fc-h2').value)   || 0;
-  var o2   = parseFloat(document.getElementById('fc-o2').value)   || 0;
-  var temp = parseFloat(document.getElementById('fc-temp').value) || 80;
-
-  /* Limiting reagent */
-  var reacted = Math.min(h2, o2 * 2);
-
-  /* Stoichiometric quality (1.0 = ideal) */
-  var ideal        = o2 * 2;
-  var ratioQuality = (Math.max(h2, ideal) > 0)
-    ? Math.min(h2, ideal) / Math.max(h2, ideal)
-    : 0;
-
-  /* Temperature factor — peak near 80°C */
-  var tempFactor = Math.max(0.5, Math.min(1.0, 1.0 - Math.abs(temp - 80) / 80));
-
-  var power = Math.round(reacted * 15 * ratioQuality * tempFactor);
-  var eff   = Math.min(83, Math.max(20, Math.round(60 * ratioQuality * tempFactor + 10)));
-  var water = Math.round(reacted * 18 * ratioQuality);
-
-  /* Simplified Nernst-inspired voltage */
-  var volt  = (1.23 * ratioQuality * tempFactor - 0.05 * (h2 / 20)).toFixed(2);
-
-  document.getElementById('fc-power').innerHTML  = power + '<span class="metric-unit">W</span>';
-  document.getElementById('fc-eff').innerHTML    = eff   + '<span class="metric-unit">%</span>';
-  document.getElementById('fc-water').innerHTML  = water + '<span class="metric-unit">g/min</span>';
-  document.getElementById('fc-volt').innerHTML   = volt  + '<span class="metric-unit">V</span>';
+  var h2 = +document.getElementById('fc-h2').value;
+  var o2 = +document.getElementById('fc-o2').value;
+  var temp = +document.getElementById('fc-temp').value;
+  var ratio = Math.min(h2, o2*2) / Math.max(h2, o2*2);
+  var tempFactor = (temp - 60) / 60;
+  var power = Math.round(ratio * h2 * 12 * (0.8 + tempFactor * 0.2));
+  var eff = Math.round(50 + ratio * 20 + tempFactor * 8);
+  var water = Math.round(h2 * 0.9 * ratio);
+  var volt = (0.9 + ratio * 0.15 - (h2/20)*0.05).toFixed(2);
+  document.getElementById('fc-power').innerHTML = power + '<span class="metric-unit">W</span>';
+  document.getElementById('fc-eff').innerHTML = Math.min(eff,85) + '<span class="metric-unit">%</span>';
+  document.getElementById('fc-water').innerHTML = water + '<span class="metric-unit">g/min</span>';
+  document.getElementById('fc-volt').innerHTML = volt + '<span class="metric-unit">V</span>';
 }
 
 function drawFCChart() {
   var c = document.getElementById('fc-canvas');
-  if (!c || !c.offsetWidth) return;
+  if(!c) return;
   var ctx = c.getContext('2d');
-  var W   = c.offsetWidth;
-  var H   = 164;
-  c.width  = W;
-  c.height = H;
-
-  ctx.clearRect(0, 0, W, H);
-
-  if (!fcRunning) {
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.font      = '12px var(--font-sans, sans-serif)';
+  var W = c.offsetWidth || 580, H = 168;
+  c.width = W; c.height = H;
+  var isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  ctx.clearRect(0,0,W,H);
+  if(!fcRunning) {
+    ctx.fillStyle = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)';
+    ctx.font = '13px var(--font-sans)';
     ctx.textAlign = 'center';
-    ctx.fillText('Press "Start reaction" to see fuel cell animation', W / 2, H / 2);
+    ctx.fillText('Press "Start reaction" to begin simulation', W/2, H/2);
     return;
   }
-
-  var anodeX = 72, cathX = W - 72;
-  var eW = 48, eH = H - 44;
-  var eTop = 26;
-
-  /* Electrode fills */
-  ctx.fillStyle = 'rgba(74,158,255,0.15)';
-  ctx.fillRect(anodeX - eW / 2, eTop, eW, eH);
-  ctx.fillStyle = 'rgba(29,184,126,0.15)';
-  ctx.fillRect(cathX - eW / 2, eTop, eW, eH);
-
-  /* Electrolyte region */
-  ctx.fillStyle = 'rgba(255,255,255,0.03)';
-  ctx.fillRect(anodeX + eW / 2, eTop, cathX - eW / 2 - (anodeX + eW / 2), eH);
-
-  /* Electrode borders */
-  ctx.strokeStyle = 'rgba(74,158,255,0.35)';
-  ctx.lineWidth   = 1;
-  ctx.strokeRect(anodeX - eW / 2, eTop, eW, eH);
-  ctx.strokeStyle = 'rgba(29,184,126,0.35)';
-  ctx.strokeRect(cathX - eW / 2, eTop, eW, eH);
-
-  /* Column labels */
-  ctx.font = '10px var(--font-mono, monospace)';
+  var anodeX = 60, cathX = W-60, midX = W/2;
+  ctx.fillStyle = isDark ? '#185FA5' : '#E6F1FB';
+  ctx.fillRect(anodeX-20, 20, 40, H-40);
+  ctx.fillStyle = isDark ? '#0F6E56' : '#E1F5EE';
+  ctx.fillRect(cathX-20, 20, 40, H-40);
+  ctx.fillStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+  ctx.fillRect(anodeX+20, 20, cathX-anodeX-40, H-40);
+  ctx.fillStyle = isDark ? '#85B7EB' : '#185FA5';
+  ctx.font = '11px var(--font-sans)';
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(74,158,255,0.7)';
-  ctx.fillText('Anode (−)', anodeX, eTop - 8);
-  ctx.fillStyle = 'rgba(29,184,126,0.7)';
-  ctx.fillText('Cathode (+)', cathX, eTop - 8);
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
-  ctx.fillText('PEM', W / 2, eTop - 8);
-
-  /* Animated H⁺ ions */
-  var midLeft  = anodeX + eW / 2;
-  var midRight = cathX - eW / 2;
-  var ionZoneW = midRight - midLeft;
-  var t = (Date.now() / 900) % 1;
-
-  for (var i = 0; i < 5; i++) {
-    var prog = (t + i * 0.2) % 1;
-    var bx   = midLeft + prog * ionZoneW;
-    var by   = eTop + 16 + i * (eH - 20) / 5;
+  ctx.fillText('Anode (−)', anodeX, 14);
+  ctx.fillStyle = isDark ? '#5DCAA5' : '#0F6E56';
+  ctx.fillText('Cathode (+)', cathX, 14);
+  ctx.fillStyle = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+  ctx.fillText('Electrolyte', midX, 14);
+  var t = (Date.now()/800) % 1;
+  for(var i=0;i<4;i++){
+    var progress = (t + i*0.25) % 1;
+    var bx = anodeX+20 + progress*(cathX-anodeX-40);
+    var by = 50 + i*25;
     ctx.beginPath();
-    ctx.arc(bx, by, 5, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(74,158,255,0.85)';
+    ctx.arc(bx, by, 4, 0, Math.PI*2);
+    ctx.fillStyle = '#378ADD';
     ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.font = '7px var(--font-mono, monospace)';
-    ctx.textAlign = 'center';
-    ctx.fillText('H⁺', bx, by + 2.5);
+    ctx.fillStyle = isDark ? 'rgba(255,255,255,0.7)' : '#042C53';
+    ctx.font = '8px var(--font-sans)';
+    ctx.fillText('H⁺', bx, by+3);
   }
-
-  /* External electron circuit dashed arc */
-  var eTop2 = eTop - 2;
-  ctx.beginPath();
-  ctx.strokeStyle = 'rgba(232,162,48,0.55)';
-  ctx.lineWidth   = 2;
-  ctx.setLineDash([5, 4]);
-  ctx.moveTo(anodeX - eW / 2, eTop2);
-  ctx.lineTo(24, eTop2);
-  ctx.lineTo(24, H - 18);
-  ctx.lineTo(cathX + eW / 2, H - 18);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  ctx.fillStyle = 'rgba(232,162,48,0.7)';
-  ctx.font = '9px var(--font-mono, monospace)';
-  ctx.textAlign = 'center';
-  ctx.fillText('e⁻ external circuit', W / 2, H - 5);
-
-  /* Gas labels */
-  var gx = anodeX - eW / 2 - 6;
-  ctx.fillStyle = 'rgba(29,184,126,0.7)';
-  ctx.font = '10px var(--font-mono, monospace)';
-  ctx.textAlign = 'right';
-  ctx.fillText('2H₂ →', gx, H / 2);
-
-  var cxr = cathX + eW / 2 + 6;
-  ctx.fillStyle = 'rgba(74,158,255,0.7)';
+  ctx.fillStyle = '#1D9E75';
+  ctx.font = '11px var(--font-sans)';
   ctx.textAlign = 'left';
-  ctx.fillText('← O₂', cxr, H / 2 - 8);
-  ctx.fillStyle = 'rgba(29,184,126,0.7)';
-  ctx.fillText('→ 2H₂O', cxr, H / 2 + 8);
-
-  /* Half-reaction labels inside electrodes */
-  ctx.fillStyle = 'rgba(74,158,255,0.6)';
-  ctx.font = '7px var(--font-mono, monospace)';
-  ctx.textAlign = 'center';
-  ctx.fillText('2H₂→4H⁺+4e⁻', anodeX, H - 34);
-  ctx.fillStyle = 'rgba(29,184,126,0.6)';
-  ctx.fillText('O₂+4H⁺+4e⁻', cathX, H - 42);
-  ctx.fillText('→2H₂O', cathX, H - 32);
+  ctx.fillText('H₂ →', anodeX-55, H/2);
+  ctx.textAlign = 'right';
+  ctx.fillText('← O₂', cathX+55, H/2-10);
+  ctx.fillStyle = '#378ADD';
+  ctx.fillText('H₂O', cathX+55, H/2+10);
 }
 
 function toggleFC() {
   fcRunning = !fcRunning;
   var btn = document.getElementById('fc-play-btn');
   var tag = document.getElementById('fc-status-tag');
-
-  if (fcRunning) {
-    btn.textContent = '⏸ Pause reaction';
-    btn.className   = 'act-btn danger';
-    tag.className   = 'tag tag-teal';
-    tag.textContent = 'Running';
+  btn.textContent = fcRunning ? 'Pause reaction' : 'Start reaction';
+  btn.className = fcRunning ? 'act-btn danger' : 'act-btn primary';
+  tag.className = fcRunning ? 'tag tag-teal' : 'tag tag-blue';
+  tag.textContent = fcRunning ? 'Running' : 'Idle';
+  if(fcRunning) {
     computeFCMetrics();
-    updateFC();
-    fcInterval = setInterval(drawFCChart, 50);
+    fcInterval = setInterval(function(){ drawFCChart(); }, 50);
   } else {
-    btn.textContent = '▶ Start reaction';
-    btn.className   = 'act-btn primary';
-    tag.className   = 'tag tag-blue';
-    tag.textContent = 'Idle';
     clearInterval(fcInterval);
-    fcInterval = null;
     drawFCChart();
   }
-  updateSystemBar();
 }
 
 function resetFC() {
   fcRunning = false;
   clearInterval(fcInterval);
-  fcInterval = null;
-
-  document.getElementById('fc-play-btn').textContent = '▶ Start reaction';
-  document.getElementById('fc-play-btn').className   = 'act-btn primary';
+  document.getElementById('fc-play-btn').textContent = 'Start reaction';
+  document.getElementById('fc-play-btn').className = 'act-btn primary';
   document.getElementById('fc-status-tag').className = 'tag tag-blue';
   document.getElementById('fc-status-tag').textContent = 'Idle';
-
-  var units = { 'fc-power': 'W', 'fc-eff': '%', 'fc-water': 'g/min', 'fc-volt': 'V' };
-  Object.keys(units).forEach(function(id) {
-    document.getElementById(id).innerHTML = '0<span class="metric-unit">' + units[id] + '</span>';
+  ['fc-power','fc-eff','fc-water','fc-volt'].forEach(function(id){
+    var u = {fpower:'W','fc-eff':'%','fc-water':'g/min','fc-volt':'V'}[id] || '';
+    document.getElementById(id).innerHTML = '0<span class="metric-unit">' + (id==='fc-power'?'W':id==='fc-eff'?'%':id==='fc-water'?'g/min':'V') + '</span>';
   });
-
-  document.getElementById('fc-ratio-bar').style.width      = '0%';
-  document.getElementById('fc-ratio-bar').style.background = 'var(--teal)';
   drawFCChart();
-  updateSystemBar();
 }
 
-/* ============================================================
-   CELL BUILDER
-   ============================================================ */
+var cellData = {
+  anode:  {zn:{v:0.76,name:'Zinc',eco:'Medium',rx:'Zn → Zn²⁺ + 2e⁻'}, li:{v:3.04,name:'Lithium',eco:'Low',rx:'Li → Li⁺ + e⁻'}, pb:{v:0.13,name:'Lead',eco:'Low',rx:'Pb → Pb²⁺ + 2e⁻'}, fe:{v:0.44,name:'Iron',eco:'High',rx:'Fe → Fe²⁺ + 2e⁻'}, bmass:{v:0.6,name:'Biomass C',eco:'High',rx:'C → CO₂ + 4e⁻'}},
+  cath:   {mno2:{v:1.23,name:'MnO₂',eco:'Medium',use:'Alkaline batteries'}, licoo2:{v:3.9,name:'LiCoO₂',eco:'Low',use:'Li-ion batteries'}, pbo2:{v:1.69,name:'PbO₂',eco:'Low',use:'Lead-acid batteries'}, air:{v:1.23,name:'Air (O₂)',eco:'High',use:'Metal-air batteries'}, bmass:{v:0.8,name:'Biomass C',eco:'High',use:'Sustainable EV batteries'}},
+  elec:   {h2so4:{name:'Acidic',type:'Liquid acid',compat:['pb','zn']}, koh:{name:'Alkaline',type:'Liquid base',compat:['zn','fe','bmass']}, licl:{name:'Organic',type:'Liquid organic',compat:['li']}, solid:{name:'Solid polymer',type:'Solid state',compat:['li','bmass']}}
+};
+
 function calcCell() {
-  var an    = document.getElementById('bl-anode').value;
-  var el    = document.getElementById('bl-elec').value;
-  var ca    = document.getElementById('bl-cath').value;
+  var an = document.getElementById('bl-anode').value;
+  var el = document.getElementById('bl-elec').value;
+  var ca = document.getElementById('bl-cath').value;
   var aData = cellData.anode[an];
   var cData = cellData.cath[ca];
   var eData = cellData.elec[el];
-
-  var volt   = (aData.v + cData.v - 0.3).toFixed(2);
-  var compat = eData.compat.indexOf(an) !== -1 ? 'Compatible' : 'Potentially incompatible';
-  var compatColor = compat === 'Compatible' ? 'var(--teal)' : 'var(--red)';
-
-  var eco;
-  if      (aData.eco === 'High' && cData.eco !== 'Low') eco = 'High';
-  else if (aData.eco === 'Low'  || cData.eco === 'Low') eco = 'Low';
-  else                                                  eco = 'Medium';
-
-  document.getElementById('bl-volt').textContent     = volt + ' V';
-  document.getElementById('bl-compat').innerHTML     = '<span style="color:' + compatColor + '">' + compat + '</span>';
+  var volt = (aData.v + cData.v - 0.3).toFixed(2);
+  var compat = eData.compat.includes(an) ? 'Compatible' : 'Potentially incompatible';
+  var compatColor = compat === 'Compatible' ? '#0F6E56' : '#993C1D';
+  var eco = (aData.eco === 'High' && cData.eco !== 'Low') ? 'High' : aData.eco === 'Low' || cData.eco === 'Low' ? 'Low' : 'Medium';
+  document.getElementById('bl-volt').textContent = volt + ' V';
+  document.getElementById('bl-compat').innerHTML = '<span style="color:'+compatColor+'">' + compat + '</span>';
   document.getElementById('bl-elec-type').textContent = eData.type;
-  document.getElementById('bl-sustain').textContent  = eco + ' sustainability';
-  document.getElementById('bl-use').textContent      = cData.use;
-  document.getElementById('bl-info').textContent     = aData.name + ' anode: ' + aData.rx + ' | Electrolyte: ' + eData.name + ' | Cathode: ' + cData.name + ' | OCV ≈ ' + volt + ' V';
-
+  document.getElementById('bl-sustain').textContent = eco + ' sustainability';
+  document.getElementById('bl-use').textContent = cData.use;
+  document.getElementById('bl-info').textContent = aData.name + ' anode: ' + aData.rx + ' | Electrolyte: ' + eData.name + ' | Cathode: ' + cData.name + ' | OCV ≈ ' + volt + ' V';
   drawCellVis();
 }
 
 function drawCellVis() {
   var c = document.getElementById('bl-canvas');
-  if (!c || !c.offsetWidth) return;
+  if(!c) return;
   var ctx = c.getContext('2d');
-  var W   = c.offsetWidth;
-  var H   = 144;
-  c.width  = W;
-  c.height = H;
-
-  ctx.clearRect(0, 0, W, H);
-
+  var W = c.offsetWidth || 580, H = 148;
+  c.width = W; c.height = H;
+  var isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  ctx.clearRect(0,0,W,H);
   var an = document.getElementById('bl-anode').value;
   var el = document.getElementById('bl-elec').value;
   var ca = document.getElementById('bl-cath').value;
-
-  var elColors = {
-    h2so4: ['rgba(232,162,48,0.1)', 'rgba(232,162,48,0.5)'],
-    koh:   ['rgba(29,184,126,0.08)', 'rgba(29,184,126,0.5)'],
-    licl:  ['rgba(160,140,255,0.1)', 'rgba(160,140,255,0.5)'],
-    solid: ['rgba(74,158,255,0.08)', 'rgba(74,158,255,0.5)']
-  };
-  var ec = elColors[el] || elColors['h2so4'];
-
-  var anX  = 88, caX = W - 88;
-  var eW   = 60, eTop = 24, eH = H - 40;
-
-  ctx.fillStyle = 'rgba(74,158,255,0.15)';
-  ctx.fillRect(anX - eW / 2, eTop, eW, eH);
-
-  ctx.fillStyle = 'rgba(29,184,126,0.15)';
-  ctx.fillRect(caX - eW / 2, eTop, eW, eH);
-
-  ctx.fillStyle = ec[0];
-  ctx.fillRect(anX + eW / 2, eTop, caX - eW / 2 - (anX + eW / 2), eH);
-
-  /* Borders */
-  ctx.strokeStyle = 'rgba(74,158,255,0.3)';
-  ctx.lineWidth   = 1;
-  ctx.strokeRect(anX - eW / 2, eTop, eW, eH);
-  ctx.strokeStyle = 'rgba(29,184,126,0.3)';
-  ctx.strokeRect(caX - eW / 2, eTop, eW, eH);
-
-  /* Symbol labels inside electrodes */
-  var anLabels = { zn: 'Zn', li: 'Li', pb: 'Pb', fe: 'Fe', bmass: 'C' };
-  var caLabels = { mno2: 'MnO₂', licoo2: 'LiCoO₂', pbo2: 'PbO₂', air: 'O₂', bmass: 'C' };
-  var elLabels = { h2so4: 'H₂SO₄', koh: 'KOH', licl: 'LiClO₄', solid: 'Solid' };
-
-  ctx.font = '600 13px var(--font-mono, monospace)';
+  var elColors = {h2so4:['#FAEEDA','#633806'], koh:['#E1F5EE','#085041'], licl:['#EEEDFE','#3C3489'], solid:['#E6F1FB','#0C447C']};
+  var ec = isDark ? ['#2a2a2a','rgba(255,255,255,0.5)'] : elColors[el];
+  var anodeX = 80, cathX = W-80, aW = 60, cW = 60;
+  ctx.fillStyle = isDark ? '#185FA5' : '#E6F1FB';
+  ctx.fillRect(anodeX-aW/2, 20, aW, H-40);
+  ctx.fillStyle = isDark ? '#0F6E56' : '#E1F5EE';
+  ctx.fillRect(cathX-cW/2, 20, cW, H-40);
+  ctx.fillStyle = isDark ? ec[0] : ec[0];
+  ctx.fillRect(anodeX+aW/2, 20, cathX-cW/2-(anodeX+aW/2), H-40);
+  ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(anodeX-aW/2, 20, cathX+cW/2-(anodeX-aW/2), H-40);
+  var anLabels = {zn:'Zn',li:'Li',pb:'Pb',fe:'Fe',bmass:'C'};
+  var caLabels = {mno2:'MnO₂',licoo2:'LiCoO₂',pbo2:'PbO₂',air:'O₂',bmass:'C'};
+  ctx.font = '500 12px var(--font-sans)';
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(74,158,255,0.9)';
-  ctx.fillText(anLabels[an] || an, anX, H / 2 + 5);
-  ctx.fillStyle = 'rgba(29,184,126,0.9)';
-  ctx.fillText(caLabels[ca] || ca, caX, H / 2 + 5);
-  ctx.fillStyle = ec[1];
-  ctx.font = '11px var(--font-mono, monospace)';
-  ctx.fillText(elLabels[el] || el, W / 2, H / 2 + 5);
-
-  /* Column headers */
-  ctx.font = '9px var(--font-mono, monospace)';
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.fillText('Anode (−)',   anX,   eTop - 8);
-  ctx.fillText('Electrolyte', W / 2, eTop - 8);
-  ctx.fillText('Cathode (+)', caX,   eTop - 8);
-
-  /* Electron flow top arc */
+  ctx.fillStyle = isDark ? '#85B7EB' : '#185FA5';
+  ctx.fillText(anLabels[an], anodeX, H/2+4);
+  ctx.fillStyle = isDark ? '#5DCAA5' : '#085041';
+  ctx.fillText(caLabels[ca], cathX, H/2+4);
+  ctx.font = '11px var(--font-sans)';
+  ctx.fillStyle = isDark ? ec[1] : ec[1];
+  var elLabels = {h2so4:'H₂SO₄',koh:'KOH',licl:'LiClO₄',solid:'Solid'};
+  ctx.fillText(elLabels[el], W/2, H/2+4);
+  ctx.fillStyle = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  ctx.font = '10px var(--font-sans)';
+  ctx.fillText('Anode (−)', anodeX, 13);
+  ctx.fillText('Electrolyte', W/2, 13);
+  ctx.fillText('Cathode (+)', cathX, 13);
   ctx.beginPath();
-  ctx.strokeStyle = 'rgba(232,162,48,0.5)';
-  ctx.lineWidth   = 2;
-  ctx.setLineDash([4, 3]);
-  ctx.moveTo(anX, eTop);
-  ctx.lineTo(anX, 6);
-  ctx.lineTo(caX, 6);
-  ctx.lineTo(caX, eTop);
+  ctx.strokeStyle = isDark ? '#FAC775' : '#BA7517';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4,3]);
+  ctx.moveTo(anodeX, 18); ctx.lineTo(anodeX, 2); ctx.lineTo(cathX, 2); ctx.lineTo(cathX, 18);
   ctx.stroke();
   ctx.setLineDash([]);
-
-  ctx.fillStyle = 'rgba(232,162,48,0.7)';
-  ctx.font = '9px var(--font-mono, monospace)';
-  ctx.textAlign = 'center';
-  ctx.fillText('e⁻ flow →', W / 2, 10);
+  ctx.fillStyle = isDark ? '#FAC775' : '#633806';
+  ctx.font = '10px var(--font-sans)';
+  ctx.fillText('e⁻ flow →', W/2, 10);
 }
 
-/* ============================================================
-   INIT
-   ============================================================ */
-/* Redraw canvases after layout is stable */
-function init() {
-  updateBatt();
-  drawBattChart();
-  drawLiveGraph();
-  updateSystemBar();
-}
-
-window.addEventListener('load', function() {
-  setTimeout(init, 60);
-});
-
-/* Redraw on window resize */
-window.addEventListener('resize', function() {
-  drawBattChart();
-  drawLiveGraph();
-  if (document.getElementById('mod-fuelcell').style.display !== 'none') drawFCChart();
-  if (document.getElementById('mod-builder').style.display   !== 'none') drawCellVis();
-});
+updateBatt();
+drawBattChart();
 </script>
-</body>
-</html>
